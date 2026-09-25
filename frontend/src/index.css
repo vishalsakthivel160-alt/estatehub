@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply font-sans text-slate-800 bg-slate-50;
+}
+
+h1, h2, h3, h4 {
+  @apply font-display;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+.container-page {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-800 font-medium px-5 py-2.5 rounded-lg border border-slate-200 transition-all duration-200;
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 bg-transparent hover:bg-white/10 border border-white text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-200;
+}
+
+.input-field {
+  @apply w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-card hover:shadow-cardHover transition-shadow duration-300;
+}
+
+.badge {
+  @apply inline-block text-xs font-semibold px-2.5 py-1 rounded-full;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
