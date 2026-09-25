@@ -21,7 +21,11 @@ const Register = () => {
       const user = await register(form);
       navigate(dashboardPathFor(user.role));
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error details:', err);
+      const serverMsg = err.response?.data?.message;
+      const statusText = err.response?.status ? ` (HTTP ${err.response.status})` : '';
+      const networkMsg = err.message ? `: ${err.message}` : '';
+      setError(serverMsg || `Registration failed${statusText}${networkMsg}`);
     }
   };
 

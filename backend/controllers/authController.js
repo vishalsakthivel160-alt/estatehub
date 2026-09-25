@@ -14,24 +14,39 @@ const registerUser = async (req, res) => {
     const { name, email, password, phone, role } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide name, email and password' });
+      return res.status(400).json({ message: 'Please provide name, email, and password.' });
     }
 
-    const userExists = await User.findOne({ email });
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+      return res.status(400).json({ message: 'User with this email already exists.' });
     }
 
     const allowedRole = ['buyer', 'seller'].includes(role) ? role : 'buyer';
 
-    const user = await User.create({ name, email, password, phone, role: allowedRole });
+    const user = await User.create({
+      name: name.trim(),
+      email: cleanEmail,
+      password,
+      phone: phone ? phone.trim() : '',
+      role: allowedRole,
+    });
 
     res.status(201).json({
       user: user.toSafeObject(),
       token: generateToken(user._id),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Registration controller error:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'User with this email already exists.' });
+    }
+    res.status(500).json({ message: error.message || 'Server error during registration.' });
   }
 };
 
@@ -40,10 +55,15 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please provide both email and password.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
 
     if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
     if (user.isBlocked) {
@@ -55,7 +75,8 @@ const loginUser = async (req, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Login controller error:', error);
+    res.status(500).json({ message: error.message || 'Server error during login.' });
   }
 };
 

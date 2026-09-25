@@ -23,7 +23,11 @@ const Login = () => {
       const redirectTo = location.state?.from || dashboardPathFor(user.role);
       navigate(redirectTo);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      console.error('Login error details:', err);
+      const serverMsg = err.response?.data?.message;
+      const statusText = err.response?.status ? ` (HTTP ${err.response.status})` : '';
+      const networkMsg = err.message ? `: ${err.message}` : '';
+      setError(serverMsg || `Login failed${statusText}${networkMsg}`);
     }
   };
 

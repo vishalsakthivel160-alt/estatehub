@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/estatehub';
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/estatehub';
 
   try {
-    const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
+    const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
-    console.warn(`Local/Remote MongoDB unreachable (${error.message}). Starting MongoMemoryServer...`);
+    console.warn(`Primary MongoDB unreachable (${error.message}).`);
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongoServer = await MongoMemoryServer.create();

@@ -18,8 +18,35 @@ connectDB();
 
 const app = express();
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',');
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+const rawClientUrls = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : [];
+const configuredOrigins = rawClientUrls.map((url) => url.trim().replace(/\/+$/, '')).filter(Boolean);
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+];
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...configuredOrigins]));
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/+$/, '');
+      if (
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.vercel.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
