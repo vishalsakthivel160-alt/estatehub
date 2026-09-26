@@ -1,10 +1,17 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'estatehub_jwt_secret_fallback_key', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
+};
+
+const getGoogleClient = () => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  return clientId ? new OAuth2Client(clientId) : null;
 };
 
 // @desc Register new user (buyer or seller)
@@ -80,6 +87,96 @@ const loginUser = async (req, res) => {
   }
 };
 
+// @desc Login or Register with Google OAuth
+// @route POST /api/auth/google
+const googleLogin = async (req, res) => {
+  try {
+    const { credential, idToken, accessToken, role } = req.body;
+    const tokenToVerify = credential || idToken;
+
+    let payload = null;
+
+    if (tokenToVerify) {
+      const client = getGoogleClient();
+      if (client && process.env.GOOGLE_CLIENT_ID) {
+        try {
+          const ticket = await client.verifyIdToken({
+            idToken: tokenToVerify,
+            audience: process.env.GOOGLE_CLIENT_ID,
+          });
+          payload = ticket.getPayload();
+        } catch (verifyErr) {
+          console.warn('google-auth-library verifyIdToken warning:', verifyErr.message);
+        }
+      }
+
+      if (!payload) {
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${tokenToVerify}`);
+        if (response.ok) {
+          payload = await response.json();
+        }
+      }
+    } else if (accessToken) {
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (response.ok) {
+        payload = await response.json();
+      }
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: 'Invalid or expired Google token.' });
+    }
+
+    const googleId = payload.sub || payload.id;
+    const cleanEmail = payload.email.toLowerCase().trim();
+    const name = payload.name || payload.email.split('@')[0];
+    const picture = payload.picture || '';
+
+    let user = await User.findOne({ $or: [{ email: cleanEmail }, { googleId }] });
+
+    if (user) {
+      if (user.isBlocked) {
+        return res.status(403).json({ message: 'Your account has been blocked. Contact support.' });
+      }
+
+      let updated = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        updated = true;
+      }
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+        updated = true;
+      }
+      if (updated) {
+        await user.save();
+      }
+    } else {
+      const allowedRole = ['buyer', 'seller'].includes(role) ? role : 'buyer';
+      const randomPassword = `G_${googleId}_${crypto.randomBytes(8).toString('hex')}`;
+
+      user = await User.create({
+        name: name.trim(),
+        email: cleanEmail,
+        password: randomPassword,
+        googleId,
+        avatar: picture,
+        role: allowedRole,
+      });
+    }
+
+    res.json({
+      user: user.toSafeObject(),
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error('Google Auth controller error:', error);
+    res.status(500).json({ message: error.message || 'Server error during Google authentication.' });
+  }
+};
+
 // @desc Get current logged-in user
 // @route GET /api/auth/me
 const getMe = async (req, res) => {
@@ -106,4 +203,5 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe, updateProfile };
+module.exports = { registerUser, loginUser, googleLogin, getMe, updateProfile };
+

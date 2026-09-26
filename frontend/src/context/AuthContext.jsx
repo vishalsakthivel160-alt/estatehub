@@ -52,6 +52,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (payload) => {
+    setLoading(true);
+    try {
+      const data = await authService.googleLogin(payload);
+      persist(data.user, data.token);
+      return data.user;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('estatehub_token');
     localStorage.removeItem('estatehub_user');
@@ -64,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, googleLogin, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
