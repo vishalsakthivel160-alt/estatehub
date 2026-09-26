@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-// Remove trailing slashes
-const API_URL = rawApiUrl.replace(/\/+$/, '');
+const rawApiUrl = import.meta.env.VITE_API_URL || 'https://estatehub-1gip.vercel.app/api';
+const cleanUrl = rawApiUrl.replace(/\/+$/, '');
+// Ensure /api path prefix is attached if omitted in VITE_API_URL
+const API_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
 
 const api = axios.create({
   baseURL: API_URL,
